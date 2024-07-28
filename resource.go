@@ -42,6 +42,7 @@ type Create[T Validator] func(ctx Context, resource T) (T, error)
 type Update[T Validator] func(ctx Context, id string, resource T) (T, error)
 type Get[T Validator] func(ctx Context, id string) (T, error)
 type Delete[T Validator] func(ctx Context, id string) error
+type SubresourceHandler[T Validator] func(ctx Context, w http.ResponseWriter, r *http.Request)
 
 type Resource[T Validator] struct {
 	name   string
@@ -56,12 +57,15 @@ type Resource[T Validator] struct {
 	update Update[T]
 	delete Delete[T]
 
+	subresources map[string]SubresourceHandler[T]
+
 	// default limits for list requests
 	defaultLimits int
 }
 
 func New[T Validator]() *Resource[T] {
 	return &Resource[T]{
+		subresources:  make(map[string]SubresourceHandler[T]),
 		defaultLimits: 10,
 	}
 }
@@ -122,8 +126,26 @@ func (b *Resource[T]) RegisterMux(mux *http.ServeMux) *Resource[T] {
 		pattern := fmt.Sprintf("DELETE %s/%s/{%s}", b.base, b.plural, b.pathID())
 		mux.HandleFunc(pattern, b.handlerDelete)
 	}
+	for name, handler := range b.subresources {
+		pattern := fmt.Sprintf("%s/%s/{%s}/%s/", b.base, b.plural, b.pathID(), name)
+
+		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+			handler(newContext(r), w, r)
+		})
+	}
 
 	return b
+}
+
+func (b *Resource[T]) RegisterSubresource(name string, handler SubresourceHandler[T]) *Resource[T] {
+	b.subresources[name] = handler
+	return b
+}
+
+func (b *Resource[T]) Handler() http.Handler {
+	mux := http.NewServeMux()
+	b.RegisterMux(mux)
+	return mux
 }
 
 func (b *Resource[T]) handlerList(w http.ResponseWriter, r *http.Request) {

@@ -59,7 +59,10 @@ func TestResourceRegistration(t *testing.T) {
 		Create(mockCreate).
 		Get(mockGet).
 		Update(mockUpdate).
-		Delete(mockDelete)
+		Delete(mockDelete).
+		RegisterSubresource("user", func(ctx resource.Context, w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
 
 	mux := http.NewServeMux()
 	r.RegisterMux(mux)
@@ -77,6 +80,8 @@ func TestResourceRegistration(t *testing.T) {
 		{"Get", "GET", "/mocks/1", "", http.StatusOK},
 		{"Update", "PUT", "/mocks/1", `{"name":"Updated Mock"}`, http.StatusOK},
 		{"Delete", "DELETE", "/mocks/1", "", http.StatusNoContent},
+		{"Subresource", "GET", "/mocks/1/user/", "", http.StatusOK},
+		{"Subresource SubPath", "GET", "/mocks/1/user/1", "", http.StatusOK},
 	}
 
 	for _, tc := range testCases {
