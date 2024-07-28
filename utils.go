@@ -37,3 +37,9 @@ func parseParamsInt(r *http.Request, key string, defaultValue int) (int, error) 
 	}
 	return val, nil
 }
+
+func newContext(r *http.Request) Context {
+	return Context{
+		Context: r.Context(),
+	}
+}
