@@ -64,5 +64,18 @@ func (b *Builder[T]) Mux() *http.ServeMux {
 		pattern := fmt.Sprintf("POST /%s/", b.name)
 		mux.HandleFunc(pattern, b.handlerCreate)
 	}
+	if b.get != nil {
+		pattern := fmt.Sprintf("GET /%s/{resource-id}", b.name)
+		mux.HandleFunc(pattern, b.handlerGet)
+	}
+	if b.update != nil {
+		pattern := fmt.Sprintf("PUT /%s/{resource-id}", b.name)
+		mux.HandleFunc(pattern, b.handlerUpdate)
+	}
+	if b.delete != nil {
+		pattern := fmt.Sprintf("DELETE /%s/{resource-id}", b.name)
+		mux.HandleFunc(pattern, b.handlerDelete)
+	}
+
 	return mux
 }

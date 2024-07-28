@@ -1,8 +1,6 @@
 package resource
 
-import (
-	"context"
-)
+import "context"
 
 const (
 	MIMEApplicationJSON = "application/json"
@@ -10,8 +8,8 @@ const (
 )
 
 type Resource interface {
-	ValidateCreate(ctx context.Context) error
-	ValidateUpdate(ctx context.Context, id string) error
+	ValidateCreate(ctx Context) error
+	ValidateUpdate(ctx Context, id string) error
 }
 
 type ResourceList[T Resource] struct {
@@ -30,8 +28,12 @@ type ErrorResponse struct {
 	Error   interface{} `json:"error"`
 }
 
-type List[T Resource] func(ctx context.Context, offset int, limit int) ([]T, error)
-type Create[T Resource] func(ctx context.Context, resource T) (T, error)
-type Update[T Resource] func(ctx context.Context, id string, resource T) (T, error)
-type Get[T Resource] func(ctx context.Context, id string) (T, error)
-type Delete[T Resource] func(ctx context.Context, id string) error
+type Context struct {
+	context.Context
+}
+
+type List[T Resource] func(ctx Context, offset int, limit int) ([]T, error)
+type Create[T Resource] func(ctx Context, resource T) (T, error)
+type Update[T Resource] func(ctx Context, id string, resource T) (T, error)
+type Get[T Resource] func(ctx Context, id string) (T, error)
+type Delete[T Resource] func(ctx Context, id string) error
