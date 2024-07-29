@@ -1,13 +1,10 @@
 package openapi3_test
 
 import (
-	"encoding/json"
-	"os"
 	"reflect"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	oas3 "github.com/iwanhae/resource/openapi3"
+	"github.com/iwanhae/resource/openapi3"
 )
 
 type StructSimple struct {
@@ -21,7 +18,8 @@ type StructSimple struct {
 		Nested string `json:"nested"`
 	} `json:"hello"`
 
-	Users StructCommon `json:"users"`
+	Users []StructCommon `json:"users"`
+	User  StructCommon   `json:"user"`
 }
 
 type StructCommon struct {
@@ -29,10 +27,46 @@ type StructCommon struct {
 }
 
 func TestSchema(t *testing.T) {
-	schemas := make(openapi3.Schemas)
-	oas3.RegisterStructToSchemas(reflect.TypeOf(StructSimple{}), schemas)
+	b := openapi3.NewBuilder()
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	enc.Encode(schemas)
+	b.Register(reflect.TypeFor[Category]())
+	b.Register(reflect.TypeFor[Order]())
+	b.Register(reflect.TypeFor[Pet]())
+	b.Register(reflect.TypeFor[Tag]())
+	b.Register(reflect.TypeFor[User]())
+
+	result := b.Build()
+	s := result.Components.Schemas
+
+	testCases := []struct {
+		name   string
+		got    interface{}
+		expect interface{}
+	}{
+		{
+			name:   "category should be object",
+			got:    s["category"].Value.Type.Is("object"),
+			expect: true,
+		},
+		{
+			name:   "category.id should be integer",
+			got:    s["category"].Value.Properties["id"].Value.Type.Is("integer"),
+			expect: true,
+		},
+		{
+			name:   "category.name should be integer",
+			got:    s["category"].Value.Properties["name"].Value.Type.Is("string"),
+			expect: true,
+		},
+		{
+			name:   "category does not has required field",
+			got:    len(s["category"].Value.Required),
+			expect: 0,
+		},
+	}
+	for _, tc := range testCases {
+		if !reflect.DeepEqual(tc.got, tc.expect) {
+			t.Errorf("%s: Expect %q but got %q", tc.name, tc.expect, tc.got)
+		}
+	}
 }
